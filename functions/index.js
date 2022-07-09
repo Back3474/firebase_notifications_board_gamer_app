@@ -183,8 +183,8 @@ exports.notificationNewGame = db.ref("next meeting/games/{game}").onCreate(
 
 exports.notificationMeetingCanceled = db.ref("next meeting/isCanceled").onUpdate(
     (change, context) => {
-        const canceled = change.after.val();
-        if(canceled == "true"){
+        const isCanceled = change.after.val();
+        if(isCanceled == true){
             var refHost = database.ref("next meeting/host");
             refHost.on("value", (snapshot) => {
                 var uName = snapshot.val();
@@ -206,6 +206,7 @@ exports.notificationMeetingCanceled = db.ref("next meeting/isCanceled").onUpdate
                 })
             })
         }
+        
     }
 )
 
