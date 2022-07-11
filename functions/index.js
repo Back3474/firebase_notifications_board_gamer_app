@@ -7,32 +7,54 @@ var db = functions.database;
 var database = admin.database();
 
 
-exports.meetingChanges = functions.database.ref("next meeting/changes").onUpdate(
+exports.meetingChanges = functions.database.ref("notification/changes").onUpdate(
     (change, context) => {
-        const changes = change.after.val();
         var refNextMeeting = database.ref("next meeting");
-        refNextMeeting.child("hostId").on("value", (snapshot) => {
+        refNextMeeting.child("hostId").once("value", (snapshot) => {
             var uid = snapshot.val();
-            refNextMeeting.child("host").on("value", (snapshot) => {
+            refNextMeeting.child("host").once("value", (snapshot) => {
                 var uName = snapshot.val();
-                if (changes != 0){
-                    admin.messaging().sendToTopic(
-                        "next_meeting",
-                        {
-                            data: {
-                                uid: uid,
-                                uName: uName,
-                                msgId: "next_meeting",
-                                title: "notification_next_meeting_detail_changes_title",
-                                body: "notification_next_meeting_detail_changes"
-                            }
+                admin.messaging().sendToTopic(
+                    "next_meeting",
+                    {
+                        data: {
+                            uid: uid,
+                            uName: uName,
+                            msgId: "next_meeting",
+                            title: "notification_next_meeting_detail_changes_title",
+                            body: "notification_next_meeting_detail_changes"
                         }
-                    )
-                }
+                    }
+                )
+                
             })
         })
     }
 );
+
+exports.meeting_changes = db.ref("notification/changes").onCreate(
+    (snapshot, context) => {
+        var refNextMeeting = database.ref("next meeting");
+        refNextMeeting.child("hostId").once("value", (snapshot) => {
+            var uid = snapshot.val();
+            refNextMeeting.child("host").once("value", (snapshot) => {
+                var uName = snapshot.val();
+                admin.messaging().sendToTopic(
+                    "next_meeting",
+                    {
+                        data: {
+                            uid: uid,
+                            uName: uName,
+                            msgId: "next_meeting",
+                            title: "notification_next_meeting_detail_changes_title",
+                            body: "notification_next_meeting_detail_changes"
+                        }
+                    }
+                )
+            })
+        })
+    }
+)
 
 exports.notificationNewRating = db.ref("last gamenight/ratings/{uid}").onCreate(
     (snapshot, context) => {
@@ -181,31 +203,52 @@ exports.notificationNewGame = db.ref("next meeting/games/{game}").onCreate(
     }
 )
 
-exports.notificationMeetingCanceled = db.ref("next meeting/isCanceled").onUpdate(
-    (change, context) => {
-        const isCanceled = change.after.val().toString();
-        if(isCanceled == "true"){
-            var refHost = database.ref("next meeting/host");
-            refHost.on("value", (snapshot) => {
-                var uName = snapshot.val();
-                var refHostId = database.ref("next meeting/hostId");
-                refHostId.on("value", (snapshot) => {
-                    var uid = snapshot.val();
-                    admin.messaging().sendToTopic(
-                        "meeting_canceled",
-                        {
-                            data: {
-                                uid: uid,
-                                uName: uName,
-                                msgId: "next_meeting",
-                                title: "notification_meeting_canceled_title",
-                                body: "notification_meeting_canceled"
-                            }
+exports.notificationMeetingCanceled = db.ref("notification/isCanceled").onCreate(
+    (snapshot, context) => {
+        var refHost = database.ref("next meeting/host");
+        refHost.once("value", (snapshot) => {
+            var uName = snapshot.val();
+            var refHostId = database.ref("next meeting/hostId");
+            refHostId.once("value", (snapshot) => {
+                var uid = snapshot.val();
+                admin.messaging().sendToTopic(
+                    "meeting_canceled",
+                    {
+                        data: {
+                            uid: uid,
+                            uName: uName,
+                            msgId: "next_meeting",
+                            title: "notification_meeting_canceled_title",
+                            body: "notification_meeting_canceled"
                         }
-                    )  
-                })
+                    }
+                )  
             })
-        }
-        
+        })        
+    }
+)
+
+exports.notificationNewMeeting = db.ref("notification").onDelete(
+    (snapshot, context) => {
+        var refHost = database.ref("next meeting/host");
+        refHost.once("value", (snapshot) => {
+            var uName = snapshot.val();
+            var refHostId = database.ref("next meeting/hostId");
+            refHostId.once("value", (snapshot) => {
+                var uid = snapshot.val();
+                admin.messaging().sendToTopic(
+                    "next_meeting",
+                    {
+                        data: {
+                            uid: uid,
+                            uName: uName,
+                            msgId: "new_meeting",
+                            title: "notification_new_meeting_generated_title",
+                            body: "notification_new_meeting_generated"
+                        }
+                    }
+                )  
+            })
+        })
     }
 )
